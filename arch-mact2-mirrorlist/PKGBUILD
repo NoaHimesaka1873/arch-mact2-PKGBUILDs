@@ -1,0 +1,22 @@
+# Maintainer: Noa Himesaka <himesaka@noa.codes>
+# Earlier maintainers: EndeavourOS <info@endeavouros.com>
+# Earlier maintainers: Portergos Linux <portergoslinux@gmail.com>
+
+pkgname=arch-mact2-mirrorlist
+pkgver=1
+pkgrel=1
+pkgdesc="t2linux Arch Linux repository mirrorlist"
+arch=('any')
+url=https://github.com/NoaHimesaka1873/arch-mact2-utils-PKGBUILDs/tree/senpai/$pkgname
+_url="https://raw.githubusercontent.com/NoaHimesaka1873/arch-mact2-utils-PKGBUILDs/senpai/$pkgname"
+
+license=('GPL3')
+options=(!strip !emptydirs)
+backup=("etc/pacman.d/$pkgname")  # keeps the possibly ranked mirrorlist
+
+source=($_url/$pkgname)
+sha512sums=('e5f72d779ea3b4769909ec8dbb0bc5298e768ed76fd380859c9c784dd9f3d3f34769577f4c9068b3eb9d01a7d3c9edec5532363cf853cd40f9709fb89f825339')
+
+package() {
+ install -Dm644 "$srcdir/$pkgname" "$pkgdir/etc/pacman.d/$pkgname"
+}

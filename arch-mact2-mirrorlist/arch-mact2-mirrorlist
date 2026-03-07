@@ -1,0 +1,22 @@
+######################################################
+####                                              ####
+###         arch-mact2 Repository Mirrorlist       ###
+####                                              ####
+######################################################
+#### Entry in file /etc/pacman.conf:
+###     [arch-mact2]
+###     SigLevel = Never
+###     Include = /etc/pacman.d/arch-mact2-mirrorlist
+######################################################
+### Tip: Use the 'arch-mact2-rankmirrors' program to rank
+###      these mirrors or re-order them manually.
+######################################################
+
+# Worldwide (GitHub)
+Server = https://github.com/NoaHimesaka1873/arch-mact2-mirror/releases/download/release
+
+# South Korea
+Server = https://mirror.funami.tech/arch-mact2/os/$arch
+
+# United States of America
+Server = https://arch-mact2.miningtcup.me/os/$arch

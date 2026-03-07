@@ -1,0 +1,40 @@
+# Maintainer: Noa Himesaka <himesaka@noa.codes>
+# Earlier maintainers: EndeavourOS <info@endeavouros.com>
+# Earlier maintainers: Portergos Linux <portergoslinux@gmail.com>
+
+pkgname=arch-mact2-rankmirrors
+pkgver=1
+pkgrel=1
+pkgdesc="t2linux mirror ranking tool"
+arch=('any')
+
+url="https://github.com/NoaHimesaka1873/arch-mact2-utils-PKGBUILDs/tree/senpai/$pkgname"
+_url="https://raw.githubusercontent.com/NoaHimesaka1873/arch-mact2-utils-PKGBUILDs/senpai/$pkgname"
+
+license=('GPL3')
+depends=('python')
+backup=("etc/$pkgname.conf")
+
+source=(
+  "$_url/$pkgname"
+  "$_url/$pkgname.completion"
+  "$_url/$pkgname.conf"
+  "$_url/$pkgname.hook"
+)
+sha512sums=('SKIP'
+            'SKIP'
+            'SKIP'
+            'SKIP')
+
+package() {
+    local file
+    for file in "${source[@]}" ; do
+        file=${file##*/}
+        case "$file" in
+            *.completion)    install -Dm644 "$srcdir/$file" "$pkgdir/usr/share/bash-completion/completions/${file%.completion}" ;;
+            *.conf)          install -Dm644 "$srcdir/$file" "$pkgdir/etc/$file" ;;
+            *.hook)          install -Dm644 "$srcdir/$file" "$pkgdir/usr/share/libalpm/hooks/$file" ;;
+            *)               install -Dm755 "$srcdir/$file" "$pkgdir/usr/bin/$file" ;;
+        esac
+    done
+}
