@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = arch-mact2-mirrorlist
+
+[Action]
+Description = Hook to rank t2linux mirrors after installing or upgrading the related mirrorlist package
+When = PostTransaction
+Exec = /usr/bin/arch-mact2-rankmirrors --hook-rank

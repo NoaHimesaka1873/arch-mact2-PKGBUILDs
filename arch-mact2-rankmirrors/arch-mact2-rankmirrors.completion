@@ -1,0 +1,14 @@
+# bash completion for arch-mact2-rankmirrors
+
+_arch_mact2_rankmirrors() {
+    local cur prev words cword
+    _init_completion || return
+
+    local opts="--help -h --ignore --mirror-verbosity --no-save -n --edit-config --prefer --parallel -p --sequential -s --show-orig-list -b --show-rank-info --sort --timeout -t --use-local-mirrorlist --verbose --pager --pager-less --pager-nano --list-only --mirror-add"
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+        return 0
+    fi
+}
+complete -F _arch_mact2_rankmirrors arch-mact2-rankmirrors

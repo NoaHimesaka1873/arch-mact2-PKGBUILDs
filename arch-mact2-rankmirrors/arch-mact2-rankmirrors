@@ -1,0 +1,412 @@
+#!/usr/bin/env python3
+#
+# Simple ranking of mirrors for the t2linux mirrorlist.
+# Ported to Python 3.14 for arch-mact2.
+# Maintainer: Noa Himesaka <himesaka@noa.codes>
+# Original Maintainer: EndeavourOS <info@endeavouros.com>
+#
+
+import argparse
+import concurrent.futures
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+PROGNAME = "arch-mact2-rankmirrors"
+CONF_FILE = f"/etc/{PROGNAME}.conf"
+MIRRORLIST_PATH = "/etc/pacman.d/arch-mact2-mirrorlist"
+REPO = "arch-mact2"
+ARCH = "x86_64"  # arch-mact2 is exclusively x86_64
+
+config = {
+    "T2LINUX_OVERWRITE_MIRRORLIST": "no",
+    "T2LINUX_AUTO_MIRROR_RANKING": "no",
+    "T2LINUX_AUTORANK_TIMEOUT": "30",
+    "T2LINUX_IGNORED_MIRRORS": "",
+    "T2LINUX_RANKMIRRORS_EXIT_CODE_VERBOSITY": "show",
+    "T2LINUX_RANK_WHEN_MIRRORLIST_CHANGES": "yes",
+    "T2LINUX_KEEP_UNRANKED_LIST_BY_HOOK": "no",
+}
+
+class Colors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def colorize(msg, color_code, use_colors=True):
+    if use_colors:
+         return f"{color_code}{msg}{Colors.ENDC}"
+    return msg
+
+def print_info(msg, prefix=""):
+    real_prefix = prefix if prefix else f"==> {PROGNAME}: info: "
+    print(colorize(f"{real_prefix}{msg}", Colors.OKCYAN), file=sys.stderr)
+
+def print_warn(msg):
+    print(colorize(f"==> {PROGNAME}: warning: {msg}", Colors.WARNING), file=sys.stderr)
+
+def print_error(msg):
+    print(colorize(f"==> {PROGNAME}: error: {msg}", Colors.FAIL), file=sys.stderr)
+
+def die(msg, status=1):
+    print_error(msg)
+    sys.exit(status)
+
+def parse_config(filepath):
+    if not os.path.exists(filepath):
+        return
+    # simple bash-like parser
+    with open(filepath, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            match = re.match(r'^([A-Za-z0-9_]+)=["\']?(.*?)["\']?$', line)
+            if match:
+                key, val = match.groups()
+                # Resolve rudimentary variable references explicitly expected
+                if val == "$T2LINUX_OVERWRITE_MIRRORLIST" and key == "T2LINUX_AUTO_MIRROR_RANKING":
+                    config[key] = config.get("T2LINUX_OVERWRITE_MIRRORLIST", "no")
+                else:
+                    config[key] = val
+
+def fetch_mirror_timing(url, timeout, verbosity="show", sort_method="latency"):
+    # Since arch-mact2 doesn't have a 'state' file for update levels,
+    # we time downloading the repository database.
+    test_url = url.replace("$repo", REPO).replace("$arch", ARCH)
+    if not test_url.endswith("/"):
+        test_url += "/"
+    
+    latency_url = test_url + "arch-mact2.db"
+    speed_url = test_url + "apple-bcm-firmware-14.0-1-any.pkg.tar.zst"
+    
+    start_time = time.monotonic()
+    success = False
+    error_msg = ""
+    status = -1
+    ttfb = 0
+    speed_mbps = 0.0
+    
+    try:
+        if sort_method == "latency":
+            req = urllib.request.Request(latency_url, headers={'User-Agent': 'curl/8.6.0'})
+            req.get_method = lambda: 'HEAD'
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                status = response.getcode()
+                ttfb = time.monotonic() - start_time
+                success = True
+        else:
+            req = urllib.request.Request(speed_url, headers={'User-Agent': 'curl/8.6.0'})
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                status = response.getcode()
+                # Time to First Byte
+                ttfb = time.monotonic() - start_time
+                
+                # Measure download speed
+                read_start = time.monotonic()
+                target_bytes = 2 * 1024 * 1024 # 2MB
+                bytes_read = 0
+                while bytes_read < target_bytes:
+                    chunk = response.read(8192)
+                    if not chunk:
+                        break
+                    bytes_read += len(chunk)
+                read_time = time.monotonic() - read_start
+                if read_time > 0:
+                    speed_mbps = (bytes_read / (1024 * 1024)) / read_time
+                success = True
+    except urllib.error.URLError as e:
+        error_msg = str(e.reason)
+        if isinstance(e, urllib.error.HTTPError):
+            status = e.code
+    except Exception as e:
+        error_msg = str(e)
+
+    if success:
+        if sort_method == "latency":
+            score = ttfb
+        elif sort_method == "speed":
+            score = -speed_mbps
+        elif sort_method == "mixed":
+            # Score: TTFB + arbitrary time to download 1MB (lower is better, mixed)
+            score = ttfb + (1.0 / max(speed_mbps, 0.001))
+        else:
+            score = ttfb
+
+        return (True, url, ttfb, speed_mbps, score, "")
+    else:
+        err = f"Failed to connect or fetch ({error_msg})"
+        if verbosity in ("all", "code"):
+            err += f" -> [HTTP Status: {status}]"
+        return (False, url, 0, 0.0, 0, err)
+
+def load_mirrorlist(filepath):
+    mirrors = []
+    lines = []
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                m = re.match(r'^[#\s]*Server\s*=\s*(\S+).*', line)
+                if m:
+                    mirrors.append(m.group(1))
+    return mirrors, lines
+
+def rank_mirrors(mirrors_to_rank, timeout, mode="parallel", verbosity="show", sort_method="mixed"):
+    results = [] # list of tuple: (url, ttfb, total_time, score)
+    failed = []
+
+    if not mirrors_to_rank:
+        return results, failed
+    
+    if mode == "parallel":
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_url = {executor.submit(fetch_mirror_timing, url, timeout, verbosity, sort_method): url for url in mirrors_to_rank}
+            for future in concurrent.futures.as_completed(future_to_url):
+                success, url, ttfb, speed_mbps, score, err_msg = future.result()
+                if success:
+                    results.append((url, ttfb, speed_mbps, score))
+                else:
+                    failed.append((url, err_msg))
+                    if verbosity != "none":
+                        print_warn(f"Mirror failed {url}: {err_msg}")
+    else:
+        for url in mirrors_to_rank:
+            success, url, ttfb, speed_mbps, score, err_msg = fetch_mirror_timing(url, timeout, verbosity, sort_method)
+            if success:
+                results.append((url, ttfb, speed_mbps, score))
+            else:
+                failed.append((url, err_msg))
+                if verbosity != "none":
+                    print_warn(f"Mirror failed {url}: {err_msg}")
+                    
+    # Sort by chosen metric score (fastest first)
+    results.sort(key=lambda x: x[3])
+    return results, failed
+
+def get_latest_mirrorlist_content():
+    # Fetch latest arch-mact2-mirrorlist from GitHub since it doesn't have a reliable package we can extract from like EOS
+    url = "https://raw.githubusercontent.com/NoaHimesaka1873/arch-mact2-utils-PKGBUILDs/senpai/arch-mact2-mirrorlist/arch-mact2-mirrorlist"
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'curl/8.6.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            return response.read().decode('utf-8')
+    except Exception as e:
+        die(f"Failed to download the latest mirrorlist from github: {e}")
+
+def get_pager():
+    return os.environ.get("PAGER", "cat")
+
+def edit_config():
+    editor = os.environ.get("EDITOR", "nano")
+    subprocess.run([editor, CONF_FILE])
+
+def main():
+    parser = argparse.ArgumentParser(description=f"{PROGNAME} - t2linux mirror ranking tool", add_help=False)
+    # Replicate options from the bash script where relevant
+    parser.add_argument("--help", "-h", action="store_true")
+    parser.add_argument("--ignore", type=str, action="append", help="Ignored mirrors (pipe or comma separated)")
+    parser.add_argument("--mirror-verbosity", type=str, choices=["all", "code", "show", "none"], default=None)
+    parser.add_argument("--no-save", "-n", action="store_true")
+    parser.add_argument("--edit-config", action="store_true")
+    parser.add_argument("--parallel", "-p", action="store_true")
+    parser.add_argument("--sequential", "-s", action="store_true")
+    parser.add_argument("--sort", choices=["latency", "speed", "mixed"], default="mixed", help="Sorting metric: latency (TTFB), speed (download DB), or mixed")
+    parser.add_argument("--timeout", "-t", type=int, default=None)
+    parser.add_argument("--use-local-mirrorlist", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    
+    # Internal options
+    parser.add_argument("--hook-rank", action="store_true")
+    parser.add_argument("--dump-options", nargs="?", const="default")
+
+    args = parser.parse_args()
+
+    if args.help:
+        parser.print_help()
+        sys.exit(0)
+
+    if args.edit_config:
+        edit_config()
+        sys.exit(0)
+    
+    # Dump options - compatibility for completion script
+    if args.dump_options:
+        long_opts = [opt for opt in parser._actions if opt.option_strings and opt.option_strings[0].startswith("--")]
+        short_opts = [opt for opt in parser._actions if opt.option_strings and not opt.option_strings[0].startswith("--")]
+        print(" ".join([o.option_strings[0] for o in long_opts] + [o.option_strings[0] for o in short_opts]))
+        sys.exit(0)
+
+    # Hook handler execution
+    if args.hook_rank:
+        parse_config(CONF_FILE)
+        if config.get("T2LINUX_RANK_WHEN_MIRRORLIST_CHANGES", "yes") != "yes":
+            print_info("configuration set to not rank mirrors", prefix="  -> ")
+            pacnew = f"{MIRRORLIST_PATH}.pacnew"
+            if config.get("T2LINUX_KEEP_UNRANKED_LIST_BY_HOOK", "no") != "yes" and os.path.exists(pacnew):
+                print_info(f"deleting {pacnew}", prefix="  -> ")
+                os.remove(pacnew)
+            sys.exit(0)
+        
+        args.timeout = int(config.get("T2LINUX_AUTORANK_TIMEOUT", "30"))
+
+    # Load configuration
+    parse_config(CONF_FILE)
+    
+    timeout = args.timeout if args.timeout is not None else int(config.get("T2LINUX_AUTORANK_TIMEOUT", "30"))
+    verbosity = args.mirror_verbosity if args.mirror_verbosity else config.get("T2LINUX_RANKMIRRORS_EXIT_CODE_VERBOSITY", "show")
+    mode = "sequential" if args.sequential else "parallel"
+    
+    save = not args.no_save
+
+    ignored = config.get("T2LINUX_IGNORED_MIRRORS", "").replace("|", " ").replace(",", " ").split()
+    if args.ignore:
+        for i in args.ignore:
+            ignored.extend(i.replace("|", " ").replace(",", " ").split())
+
+    # Obtain the mirrorlist text
+    mirrorlist_text = ""
+    if args.use_local_mirrorlist and os.path.exists(MIRRORLIST_PATH):
+        with open(MIRRORLIST_PATH, "r") as f:
+            mirrorlist_text = f.read()
+    else:
+        mirrorlist_text = get_latest_mirrorlist_content()
+
+    if not mirrorlist_text:
+        die("Could not retrieve mirrorlist.")
+
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as tf:
+        latest_ml_path = tf.name
+        tf.write(mirrorlist_text)
+
+    mirrors, orig_lines = load_mirrorlist(latest_ml_path)
+        
+    unique_mirrors = list(set(mirrors))
+
+    # Filter out ignored
+    mirrors_to_rank = []
+    for m in unique_mirrors:
+        if not any(ig in m for ig in ignored):
+            mirrors_to_rank.append(m)
+
+    if not mirrors_to_rank:
+        die("No mirrors found to rank! (All ignored?)")
+
+    print_info("ranking t2linux mirrors, please wait ...")
+
+    ranked_results, failed = rank_mirrors(mirrors_to_rank, timeout, mode, verbosity, args.sort)
+
+    if not ranked_results:
+        die(f"No mirrors found available! Too short timeout ({timeout})?")
+
+    # Building the output
+    output_lines = []
+    output_lines.append("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    output_lines.append(f"# t2linux mirrorlist, ranked by {PROGNAME} at {datetime.now().strftime('%x %X')}.")
+    
+    if ignored:
+        output_lines.append(f"# Ignored mirrors: {' '.join(ignored)}")
+        
+    output_lines.append("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+    final_mirrors = []
+    
+    for url, ttfb, total_time, score in ranked_results:
+        output_lines.append(f"Server = {url}")
+        final_mirrors.append(url)
+
+    output_lines.append("")
+    output_lines.append("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    output_lines.append(f"# Mirror ranking info at (UTC) {datetime.now(timezone.utc).strftime('%x %X')}:")
+    output_lines.append(f"# Ranking metric: {args.sort}")
+    
+    if args.sort == "latency":
+        output_lines.append("# The following fields are shown for each mirror:")
+        output_lines.append("#   mirror:          The mirror address")
+        output_lines.append("#   latency:         Time to first byte (smaller is faster)")
+        output_lines.append("#")
+        output_lines.append(f"# {'mirror':<60} {'latency':<10}")
+        output_lines.append(f"# {'~~~~~~':<60} {'~~~~~~~':<10}")
+        for url, ttfb, speed_mbps, score in ranked_results:
+            output_lines.append(f"# {url:<60} {ttfb:.4f}s")
+    elif args.sort == "speed":
+        output_lines.append("# The following fields are shown for each mirror:")
+        output_lines.append("#   mirror:          The mirror address")
+        output_lines.append("#   speed:           Download speed (larger is faster)")
+        output_lines.append("#")
+        output_lines.append(f"# {'mirror':<60} {'speed':<10}")
+        output_lines.append(f"# {'~~~~~~':<60} {'~~~~~':<10}")
+        for url, ttfb, speed_mbps, score in ranked_results:
+            output_lines.append(f"# {url:<60} {speed_mbps:.2f} MB/s")
+    else:
+        output_lines.append("# The following fields are shown for each mirror:")
+        output_lines.append("#   mirror:          The mirror address")
+        output_lines.append("#   latency:         Time to first byte (smaller is faster)")
+        output_lines.append("#   speed:           Download speed (larger is faster)")
+        output_lines.append("#   score:           Combined metric (smaller is faster)")
+        output_lines.append("#")
+        output_lines.append(f"# {'mirror':<52} {'latency':<10} {'speed':<12} {'score':<10}")
+        output_lines.append(f"# {'~~~~~~':<52} {'~~~~~~~':<10} {'~~~~~':<12} {'~~~~~':<10}")
+        for url, ttfb, speed_mbps, score in ranked_results:
+            output_lines.append(f"# {url:<52} {ttfb:.4f}s    {speed_mbps:.2f} MB/s   {score:.4f}")
+    
+    output_lines.append("")
+    output_lines.append("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    output_lines.append("### Original mirrorlist before ranking:")
+    output_lines.append("")
+    for line in orig_lines:
+        line = line.strip()
+        if line.startswith("Server = "):
+            output_lines.append(line.replace("Server = ", "#Server = "))
+        else:
+            output_lines.append(line)
+
+    output_lines.append("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    
+    final_output = "\n".join(output_lines) + "\n"
+
+    # Save to file or stdout
+    if save:
+        dest_file = MIRRORLIST_PATH
+        is_overwrite = config.get("T2LINUX_OVERWRITE_MIRRORLIST", "no") == "yes" or (args.hook_rank == False)
+        
+        if not is_overwrite:
+             dest_file += ".pacnew"
+
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tf:
+                tf.write(final_output)
+                tf_name = tf.name
+            
+            # Since running as user, we might need sudo
+            if os.geteuid() != 0:
+                print_info(f"Writing new ranked t2linux mirrorlist to {dest_file} (requires sudo)")
+                subprocess.run(['sudo', 'mv', tf_name, dest_file])
+                subprocess.run(['sudo', 'chown', 'root:root', dest_file])
+                subprocess.run(['sudo', 'chmod', '0644', dest_file])
+            else:
+                shutil.move(tf_name, dest_file)
+                os.chmod(dest_file, 0o644)
+        except Exception as e:
+            die(f"Failed to save ranked mirrorlist: {e}")
+    else:
+        print(final_output)
+            
+    os.remove(latest_ml_path)
+
+if __name__ == "__main__":
+    main()
