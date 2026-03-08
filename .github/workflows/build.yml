@@ -3,10 +3,10 @@ name: Build Packages
 on:
   push:
     branches:
-      - main
+      - senpai
   pull_request:
     branches:
-      - main
+      - senpai
   workflow_dispatch:
 
 jobs:
@@ -85,7 +85,7 @@ jobs:
 
   release:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/senpai' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
