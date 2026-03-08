@@ -20,3 +20,6 @@ Server = https://mirror.funami.tech/arch-mact2/os/$arch
 
 # United States of America
 Server = https://arch-mact2.miningtcup.me/os/$arch
+
+# Germany
+Server = https://mirror.syn-flut.de/arch-mact2/os/$arch
