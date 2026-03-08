@@ -15,6 +15,9 @@
 # Worldwide (GitHub)
 Server = https://github.com/NoaHimesaka1873/arch-mact2-mirror/releases/download/release
 
+# Worldwide
+Server = https://arch-t2.slsrepo.com/
+
 # South Korea
 Server = https://mirror.funami.tech/arch-mact2/os/$arch
 
