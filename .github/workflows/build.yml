@@ -105,3 +105,31 @@ jobs:
           allowUpdates: true
           makeLatest: true
           replacesArtifacts: true
+
+      - name: Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      - name: Upload and Update Repo
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+
+          # Upload Packages
+          cd artifacts
+          PKG_FILES=$(echo *.pkg.tar.zst)
+          scp -i ~/.ssh/id_ed25519 $PKG_FILES $SSH_USER@$SSH_HOST:$REMOTE_DIR/
+
+          # Update Repository
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@$SSH_HOST "cd $REMOTE_DIR && repo-add $REPO_NAME.db.tar.zst $PKG_FILES"
