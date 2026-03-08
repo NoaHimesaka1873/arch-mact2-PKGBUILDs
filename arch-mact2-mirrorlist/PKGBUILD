@@ -3,7 +3,7 @@
 # Earlier maintainers: Portergos Linux <portergoslinux@gmail.com>
 
 pkgname=arch-mact2-mirrorlist
-pkgver=2
+pkgver=3
 pkgrel=1
 pkgdesc="t2linux Arch Linux repository mirrorlist"
 arch=('any')
