@@ -15,7 +15,7 @@ options=(!strip !emptydirs)
 backup=("etc/pacman.d/$pkgname")  # keeps the possibly ranked mirrorlist
 
 source=($_url/$pkgname)
-sha512sums=('8cb077cbc8e43d80b18b50184af95f4d31e0ff07b4117a1af6a47f0fea299c1d2f6482bc96c70e051bac55a675c0deea33b63f8af86e17a7a29074e9f01c4c93')
+sha512sums=('ebea9ce90cc18d401a027105cddaaa1ecb65a10c1c6ed1f8579b05aa0fc6544a5c3326539f6858ca47e21f7c7ce0fd55157e100be5702adf327168c6687a92dc')
 
 package() {
  install -Dm644 "$srcdir/$pkgname" "$pkgdir/etc/pacman.d/$pkgname"
