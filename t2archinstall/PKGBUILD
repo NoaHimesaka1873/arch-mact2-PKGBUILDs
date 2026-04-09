@@ -8,10 +8,8 @@ arch=('x86_64')
 license=('Apache-2.0')
 makedepends=('git' 'python')
 depends=('python-textual')
-conflicts=('t2fand')
-replaces=('t2fand')
 source=('t2archinstall')
-sha256sums=('SKIP')
+sha256sums=('c7fd85500e6166eede5cb4cc047c64556fed3ad6f12e83508f166900ba5ec8f6')
 
 package() {
   # Install binary
