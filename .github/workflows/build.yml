@@ -72,6 +72,15 @@ jobs:
           echo "builduser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builduser
           chown -R builduser:builduser .
 
+      - name: Add arch-mact2 repository
+        run: |
+          cat <<EOF | tee -a /etc/pacman.conf
+          [arch-mact2]
+          Server = https://mirror.funami.tech/arch-mact2/os/x86_64
+          SigLevel = Never
+          EOF
+          pacman -Sy
+
       - name: Build package
         run: |
           cd ${{ matrix.package }}
