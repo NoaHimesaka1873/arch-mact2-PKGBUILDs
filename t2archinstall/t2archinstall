@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+
+curl -fsSL -o /tmp/t2archinstall.py https://github.com/slsrepo/t2archinstall/raw/refs/heads/main/t2archinstall.py
+chmod +x /tmp/t2archinstall.py
+python /tmp/t2archinstall.py
