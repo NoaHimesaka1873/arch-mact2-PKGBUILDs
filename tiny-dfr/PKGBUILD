@@ -11,7 +11,7 @@ makedepends=('git' 'cargo' 'librsvg')
 source=("git+https://github.com/AsahiLinux/tiny-dfr"
         "t2-intel.conf")
 sha256sums=('SKIP'
-            'SKIP')
+            'cd45b6ca09f81ed8209a39d5970192022de4185ecb9989e121560293c5bcca03')
 
 pkgver() {
   cd "$pkgname"
