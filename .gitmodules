@@ -1,0 +1,3 @@
+[submodule "linux-t2-arch"]
+	path = linux-t2-arch
+	url = https://github.com/NoaHimesaka1873/linux-t2-arch
