@@ -1,0 +1,31 @@
+pkgname=t2fanrd-git
+_pkgname=T2FanRD
+pkgver=r15.5b1c0c1
+pkgrel=1
+pkgdesc="Simple Fan Daemon for T2 Macs"
+arch=('x86_64')
+url="https://github.com/GnomedDev/T2FanRD"
+license=('GPL3')
+depends=('glibc' 'gcc-libs')
+makedepends=('git' 'cargo')
+provides=('t2fanrd')
+conflicts=('t2-fancontrol-git' 't2-fancontrol' 't2fanrd')
+source=("git+https://github.com/GnomedDev/T2FanRD.git" "t2fanrd.service")
+sha256sums=('SKIP' 'SKIP')
+
+pkgver() {
+  cd "$_pkgname"
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  cd "$_pkgname"
+  cargo build --release
+}
+
+package() {
+  cd "$_pkgname"
+  install -Dm755 "target/release/t2fanrd" "$pkgdir/usr/bin/t2fanrd"
+  install -Dm644 "../t2fanrd.service" "$pkgdir/usr/lib/systemd/system/t2fanrd.service"
+  install -Dm644 "LICENCE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

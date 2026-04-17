@@ -1,0 +1,11 @@
+[Unit]
+Description=A simple daemon to control fan speed on Macs with T2 chip, now written in Rust!
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/t2fanrd
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
