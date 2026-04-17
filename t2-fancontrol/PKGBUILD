@@ -1,0 +1,32 @@
+pkgname=t2-fancontrol-git
+_pkgname=t2-fancontrol
+pkgver=r4.63d954a
+pkgrel=1
+pkgdesc="A fan controller application for T2 Macs running Linux"
+arch=('x86_64')
+url="https://github.com/deqrocks/t2-fancontrol"
+license=('MIT')
+depends=('gtk4' 'libadwaita' 'glib2')
+makedepends=('git' 'cargo' 'make' 'pkgconf')
+conflicts=('t2fanrd')
+source=("git+https://github.com/deqrocks/t2-fancontrol.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$_pkgname"
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  cd "$_pkgname"
+  make build
+}
+
+package() {
+  cd "$_pkgname"
+  install -Dm755 "target/release/t2-fancontrol-gtk" "$pkgdir/usr/local/bin/t2-fancontrol-gtk"
+  install -Dm644 "org.t2fancontrol.gtk.desktop" "$pkgdir/usr/local/share/applications/org.t2fancontrol.gtk.desktop"
+  install -Dm644 "assets/icons/hicolor/scalable/apps/org.t2fancontrol.gtk.svg" "$pkgdir/usr/local/share/icons/hicolor/scalable/apps/org.t2fancontrol.gtk.svg"
+  install -Dm644 "systemd/t2-fancontrol.service" "$pkgdir/usr/lib/systemd/system/t2-fancontrol.service"
+  install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
