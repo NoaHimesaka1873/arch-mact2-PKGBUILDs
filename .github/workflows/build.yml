@@ -147,3 +147,4 @@ jobs:
 
 permissions:
   id-token: write # This is required for the tailscale action to request a JWT from GitHub
+  contents: write
