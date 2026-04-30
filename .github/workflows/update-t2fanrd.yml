@@ -1,0 +1,57 @@
+name: Update t2fanrd
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight
+  workflow_dispatch:
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for new git release
+        id: check
+        run: |
+          CURRENT_PKGVER=$(grep '^pkgver=' t2fanrd/PKGBUILD | cut -d= -f2 | tr -d "'" | tr -d '"')
+          
+          # Clone the upstream repository to get the latest git version
+          git clone https://github.com/GnomedDev/t2fanrd /tmp/t2fanrd
+          cd /tmp/t2fanrd
+          NEW_PKGVER=$(printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)")
+          cd - > /dev/null
+          
+          echo "Current: $CURRENT_PKGVER"
+          echo "New: $NEW_PKGVER"
+          
+          if [ -z "$NEW_PKGVER" ]; then
+            echo "Failed to determine new pkgver"
+            exit 1
+          fi
+
+          if [ "$CURRENT_PKGVER" != "$NEW_PKGVER" ]; then
+            echo "update=true" >> "$GITHUB_OUTPUT"
+            echo "version=$NEW_PKGVER" >> "$GITHUB_OUTPUT"
+            
+            sed -i "s/^pkgver=.*/pkgver=$NEW_PKGVER/" t2fanrd/PKGBUILD
+            sed -i "s/^pkgrel=.*/pkgrel=1/" t2fanrd/PKGBUILD
+          else
+            echo "update=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: steps.check.outputs.update == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update t2fanrd to ${{ steps.check.outputs.version }}"
+          title: "Update t2fanrd to ${{ steps.check.outputs.version }}"
+          body: |
+            Automatically generated pull request.
+            Updates t2fanrd to git version ${{ steps.check.outputs.version }}
+          branch: "update-t2fanrd-${{ steps.check.outputs.version }}"
