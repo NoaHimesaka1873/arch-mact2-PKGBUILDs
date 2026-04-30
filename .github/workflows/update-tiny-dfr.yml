@@ -18,7 +18,7 @@ jobs:
       - name: Check for new git release
         id: check
         run: |
-          CURRENT_PKGVER=$(grep '^pkgver=' tiny-dfr-arch/PKGBUILD | cut -d= -f2 | tr -d "'" | tr -d '"')
+          CURRENT_PKGVER=$(grep '^pkgver=' tiny-dfr/PKGBUILD | cut -d= -f2 | tr -d "'" | tr -d '"')
           
           # Clone the upstream repository to get the latest git version
           git clone https://github.com/AsahiLinux/tiny-dfr /tmp/tiny-dfr
@@ -38,8 +38,8 @@ jobs:
             echo "update=true" >> "$GITHUB_OUTPUT"
             echo "version=$NEW_PKGVER" >> "$GITHUB_OUTPUT"
             
-            sed -i "s/^pkgver=.*/pkgver=$NEW_PKGVER/" tiny-dfr-arch/PKGBUILD
-            sed -i "s/^pkgrel=.*/pkgrel=1/" tiny-dfr-arch/PKGBUILD
+            sed -i "s/^pkgver=.*/pkgver=$NEW_PKGVER/" tiny-dfr/PKGBUILD
+            sed -i "s/^pkgrel=.*/pkgrel=1/" tiny-dfr/PKGBUILD
           else
             echo "update=false" >> "$GITHUB_OUTPUT"
           fi
