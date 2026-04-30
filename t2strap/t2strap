@@ -1,0 +1,88 @@
+#!/usr/bin/python
+
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyleft 2022-2026 Noa Himesaka
+
+import argparse
+import sys
+import subprocess
+import requests
+
+kernel_list_url = "https://mirror.funami.tech/kernel_list.json"  # Downloads allowed kernel list from this URL
+denylist_url = (
+    "https://mirror.funami.tech/denylist.json"  # Downloads denylist from this URL
+)
+asklist_url = (
+    "https://mirror.funami.tech/asklist.json"  # Downloads asklist from this URL
+)
+kernel_list = requests.get(kernel_list_url).json()
+kernel_allowlist = kernel_list["accepted_args"]
+# packages we should omit because they are not needed or already will be installed
+denylist = requests.get(denylist_url).json()
+# packages we should ask the user if they want to install
+asklist = requests.get(asklist_url).json()
+parser = argparse.ArgumentParser(
+    description="t2strap: a pacstrap frontend that makes it easier to install Arch Linux on a Mac with T2 security chip",
+    epilog="Available kernels: " + ", ".join(kernel_allowlist),
+)
+parser.add_argument("-k", "--kernel", help="kernel to use", default="default")
+parser.add_argument("-v", "--verbose", help="be verbose", action="store_true")
+parser.add_argument(
+    "-d", "--dry-run", help="dry run (don't actually install)", action="store_true"
+)
+parser.add_argument("path", metavar="PATH", help="path to install to")
+parser.add_argument(
+    "packages", metavar="package", help="packages to install", nargs="+"
+)
+args = parser.parse_args()
+if args.verbose:
+    print("Kernel list: " + ", ".join(kernel_allowlist))
+    print("Denylist: " + ", ".join(denylist))
+    print("Asklist: " + ", ".join(asklist))
+
+kernel = args.kernel
+if kernel not in kernel_allowlist:
+    print("Error: kernel not in allowlist")
+    sys.exit(1)
+kernel = kernel_list[kernel]
+cmdline = [x for x in args.packages if x not in denylist and x not in asklist]
+cmdline.insert(0, args.path)
+ask = [x for x in args.packages if x in asklist]
+for x in ask:
+    if (
+        input(
+            f'Package "{x}" will not work on your Mac. Do you want to still install it? [y/N]: '
+        ).lower()
+        == "y"
+    ):
+        cmdline.append(x)
+cmdline.insert(0, "pacstrap")
+cmdline.extend(
+    [
+        "arch-mact2-mirrorlist",
+        "arch-mact2-rankmirrors",
+        "apple-t2-audio-config",
+        "apple-bcm-firmware",
+        "t2fanrd",
+        kernel,
+        kernel + "-headers",
+    ]
+)
+if args.verbose:
+    print("Running command: " + " ".join(cmdline))
+if args.dry_run:
+    print("Dry run, not actually running command")
+else:
+    subprocess.run(cmdline, shell=False)
+# append t2linux package repositories to pacman.conf
+if args.verbose:
+    print("Adding t2linux package repositories to pacman.conf")
+if args.dry_run:
+    print("Dry run, not actually running command")
+else:
+    with open(cmdline[1] + "/etc/pacman.conf", "a") as f:
+        f.write("""
+[arch-mact2]
+Include = /etc/pacman.d/arch-mact2-mirrorlist
+SigLevel = Never
+""")
