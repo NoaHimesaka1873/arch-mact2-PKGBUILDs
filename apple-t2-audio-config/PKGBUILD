@@ -1,8 +1,7 @@
 # Maintainer: Noa Himesaka <himesaka@noa.codes>
 pkgname=apple-t2-audio-config
-pkgver=r21.a973d53
+pkgver=0.4.r21.ga973d53
 pkgrel=1
-epoch=1
 pkgdesc="ALSA UCM configuration for the t2bce audio driver on Apple T2 Macs"
 url="https://github.com/deqrocks/t2bce"
 arch=('any')
@@ -16,9 +15,11 @@ makedepends=('git')
 source=("git+https://github.com/deqrocks/t2bce")
 sha256sums=('SKIP')
 
+# 0.4 continues the old 0.3 versioning so no epoch (and no ':' in the
+# package filename) is needed; upstream has no tags yet
 pkgver() {
   cd t2bce
-  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+  printf "0.4.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
 }
 
 package() {

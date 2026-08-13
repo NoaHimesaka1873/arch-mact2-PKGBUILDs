@@ -23,7 +23,7 @@ jobs:
           # Clone the upstream repository to get the latest git version
           git clone https://github.com/deqrocks/t2bce /tmp/t2bce
           cd /tmp/t2bce
-          NEW_PKGVER=$(printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)")
+          NEW_PKGVER=$(printf "0.4.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)")
           cd - > /dev/null
 
           echo "Current: $CURRENT_PKGVER"
