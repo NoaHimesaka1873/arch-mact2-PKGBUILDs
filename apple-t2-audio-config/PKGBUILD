@@ -1,0 +1,29 @@
+# Maintainer: Noa Himesaka <himesaka@noa.codes>
+pkgname=apple-t2-audio-config
+pkgver=r21.a973d53
+pkgrel=1
+epoch=1
+pkgdesc="ALSA UCM configuration for the t2bce audio driver on Apple T2 Macs"
+url="https://github.com/deqrocks/t2bce"
+arch=('any')
+license=('GPL-2.0-only')
+depends=('alsa-ucm-conf')
+optdepends=('linux-t2: for audio kernel module'
+            'pipewire: for sound server'
+            'pulseaudio: for sound server')
+replaces=('apple-t2-audio-config-alt')
+makedepends=('git')
+source=("git+https://github.com/deqrocks/t2bce")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd t2bce
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+package() {
+  cd "$srcdir/t2bce/t2bce_audio-alsa-ucm-conf"
+  for conf in ucm2/AppleT2/*.conf ucm2/conf.d/*/*.conf; do
+    install -Dm644 "$conf" "$pkgdir/usr/share/alsa/$conf"
+  done
+}

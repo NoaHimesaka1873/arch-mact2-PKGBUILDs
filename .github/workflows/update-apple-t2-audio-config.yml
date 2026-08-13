@@ -1,0 +1,57 @@
+name: Update apple-t2-audio-config
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight
+  workflow_dispatch:
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for new git release
+        id: check
+        run: |
+          CURRENT_PKGVER=$(grep '^pkgver=' apple-t2-audio-config/PKGBUILD | cut -d= -f2 | tr -d "'" | tr -d '"')
+
+          # Clone the upstream repository to get the latest git version
+          git clone https://github.com/deqrocks/t2bce /tmp/t2bce
+          cd /tmp/t2bce
+          NEW_PKGVER=$(printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)")
+          cd - > /dev/null
+
+          echo "Current: $CURRENT_PKGVER"
+          echo "New: $NEW_PKGVER"
+
+          if [ -z "$NEW_PKGVER" ]; then
+            echo "Failed to determine new pkgver"
+            exit 1
+          fi
+
+          if [ "$CURRENT_PKGVER" != "$NEW_PKGVER" ]; then
+            echo "update=true" >> "$GITHUB_OUTPUT"
+            echo "version=$NEW_PKGVER" >> "$GITHUB_OUTPUT"
+
+            sed -i "s/^pkgver=.*/pkgver=$NEW_PKGVER/" apple-t2-audio-config/PKGBUILD
+            sed -i "s/^pkgrel=.*/pkgrel=1/" apple-t2-audio-config/PKGBUILD
+          else
+            echo "update=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: steps.check.outputs.update == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update apple-t2-audio-config to ${{ steps.check.outputs.version }}"
+          title: "Update apple-t2-audio-config to ${{ steps.check.outputs.version }}"
+          body: |
+            Automatically generated pull request.
+            Updates apple-t2-audio-config to git version ${{ steps.check.outputs.version }}
+          branch: "update-apple-t2-audio-config-${{ steps.check.outputs.version }}"
