@@ -1,6 +1,6 @@
 # Maintainer: Noa Himesaka <himesaka@noa.codes>
 pkgname=tiny-dfr
-pkgver=v0.3.7.r8.g3f666f9
+pkgver=v0.3.7.r9.geb711c8
 pkgrel=1
 pkgdesc="The most basic dynamic function row daemon possible"
 arch=('x86_64')
