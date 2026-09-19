@@ -3,43 +3,40 @@
 
 pkgname=react-drm-git
 pkgver=0.1.0.r228.547be16
-pkgrel=3
+pkgrel=8
 pkgdesc="Touch Bar UI and display server for Apple T2 MacBook Pros"
 arch=('x86_64')
 url="https://github.com/dev-muhammad-adel/react-drm-for-touchbar"
 license=('GPL-3.0-or-later')
 depends=('nodejs' 'systemd' 'libdrm' 'cairo' 'librsvg' 'brightnessctl' 'cava' 'pango')
-optdepends=('t2bdrm-dkms''t2touchbar-dkms' 'python')
+optdepends=('t2bdrm-dkms' 't2touchbar-dkms' 'python' 'python-gobject' 'gtk3')
 makedepends=('npm' 'python' 'gcc' 'make' 'pkgconf' 'git')
 provides=('react-drm')
 conflicts=('react-drm' 'tiny-dfr' 'mac-touchbar-plus')
-backup=(
-    'etc/default/react-drm'
-    'opt/react-drm/linux-touchbar-control-center/config.ts'
-)
-source=("$pkgname::git+$url.git")
-sha256sums=('SKIP')
+backup=('opt/react-drm/linux-touchbar-control-center/config.ts')
+source=("$pkgname::git+$url.git" 'react-drm' 'react-drm-config-gui' 'react-drm.service' 'react-drm-config-gui.desktop')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 pkgver() {
     cd "$srcdir/$pkgname"
     local ver
-    ver=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -n1)
+    ver=$(node -p "require('./package.json').version" 2>/dev/null)
     printf "%s.r%s.%s" "${ver:-0.1.0}" "$(git rev-list --count HEAD)" "$(git log -1 --format="%h")"
 }
 
 prepare() {
     cd "$srcdir/$pkgname"
-    if [[ ! -f .env ]]; then
-        cp .env.example.t2linux .env
+    local profile="t2linux"
+    if lsmod | grep -q t2bdrm || pacman -Qq t2bdrm-dkms >/dev/null 2>&1; then
+        profile="kait2en"
     fi
+    [[ -f .env ]] || install -m0644 ".env.example.$profile" .env
 }
 
 build() {
     cd "$srcdir/$pkgname"
     npm ci
-    node node_modules/electron/install.js || true
     npm --prefix linux-touchbar-control-center run build
-    npm --prefix config-gui run build
 }
 
 package() {
@@ -47,10 +44,10 @@ package() {
     local dest="$pkgdir/opt/react-drm"
     install -d -m0755 "$dest"
     npm --prefix "$src" prune --omit=dev
-    tar -C "$src" --exclude='.git' --exclude='*.pkg.tar.*' -cf - . | tar -C "$dest" -xf -
+    tar -C "$src" --exclude='.git' --exclude='config-gui' --exclude='install-gui' -cf - . | tar -C "$dest" -xf -
 
     if [[ ! -f "$dest/linux-touchbar-control-center/config.ts" && -f "$dest/linux-touchbar-control-center/config.blueprint.ts" ]]; then
-        cp "$dest/linux-touchbar-control-center/config.blueprint.ts" "$dest/linux-touchbar-control-center/config.ts"
+        install -m0644 "$dest/linux-touchbar-control-center/config.blueprint.ts" "$dest/linux-touchbar-control-center/config.ts"
     fi
 
     if [[ -f "$dest/linux-touchbar-control-center/config.ts" ]]; then
@@ -69,41 +66,18 @@ package() {
     rm -rf "$dest"/build/Release/.deps "$dest"/build/Release/obj.target
     find "$dest" -type f \( -name "*.o" -o -name "*.o.d" \) -delete
 
-    install -Dm0644 "$src/.env.example.t2linux" "$pkgdir/etc/default/react-drm"
-    ln -sf /etc/default/react-drm "$dest/.env"
-    install -Dm0644 "$src/system/99-react-drm-t2linux.rules" "$pkgdir/usr/lib/udev/rules.d/99-react-drm.rules"
-    install -Dm0644 "$src/system/99-react-drm-kait2en.rules" "$pkgdir/usr/lib/udev/rules.d/99-react-drm-kait2en.rules.dist"
+    local profile="t2linux"
+    if lsmod | grep -q t2bdrm || pacman -Qq t2bdrm-dkms >/dev/null 2>&1; then
+        profile="kait2en"
+    fi
 
-    install -d -m0755 "$pkgdir/usr/bin"
-    cat << 'EOF' > "$pkgdir/usr/bin/react-drm"
-#!/usr/bin/env bash
-exec /usr/bin/node /opt/react-drm/linux-touchbar-control-center/dist/index.js "$@"
-EOF
-    chmod 0755 "$pkgdir/usr/bin/react-drm"
-
-    cat << 'EOF' > "$pkgdir/usr/bin/react-drm-config-gui"
-#!/usr/bin/env bash
-if [[ -f /opt/react-drm/config-gui-python/config_gui.py ]]; then
-    exec /usr/bin/python /opt/react-drm/config-gui-python/config_gui.py "$@"
-fi
-exec /opt/react-drm/node_modules/.bin/electron /opt/react-drm/config-gui "$@"
-EOF
-    chmod 0755 "$pkgdir/usr/bin/react-drm-config-gui"
-
-    ln -sf /opt/react-drm/system/react-drm-tb-detach "$pkgdir/usr/bin/react-drm-tb-detach"
-
-    install -d -m0755 "$pkgdir/usr/share/applications"
-    sed 's|^Exec=.*|Exec=/usr/bin/react-drm-config-gui|' \
-        "$src/system/react-drm-config-gui.desktop" > "$pkgdir/usr/share/applications/react-drm-config-gui.desktop"
-    chmod 0644 "$pkgdir/usr/share/applications/react-drm-config-gui.desktop"
-
-    install -d -m0755 "$pkgdir/usr/lib/systemd/user"
-    sed \
-        -e 's|%h/react-drm|/opt/react-drm|g' \
-        -e 's|EnvironmentFile=-/opt/react-drm/\.env|EnvironmentFile=-/etc/default/react-drm|g' \
-        -e 's|^ExecStart=node |ExecStart=/usr/bin/node |' \
-        "$src/system/react-drm.service" > "$pkgdir/usr/lib/systemd/user/react-drm.service"
-    chmod 0644 "$pkgdir/usr/lib/systemd/user/react-drm.service"
+    install -Dm0644 "$src/.env.example.$profile" "$dest/.env"
+    install -Dm0644 "$src/system/99-react-drm-$profile.rules" "$pkgdir/usr/lib/udev/rules.d/99-react-drm.rules"
+    install -Dm0755 "$srcdir/react-drm" "$pkgdir/usr/bin/react-drm"
+    install -Dm0755 "$srcdir/react-drm-config-gui" "$pkgdir/usr/bin/react-drm-config-gui"
+    install -Dm0755 "$src/system/react-drm-tb-detach" "$pkgdir/usr/bin/react-drm-tb-detach"
+    install -Dm0644 "$srcdir/react-drm-config-gui.desktop" "$pkgdir/usr/share/applications/react-drm-config-gui.desktop"
+    install -Dm0644 "$srcdir/react-drm.service" "$pkgdir/usr/lib/systemd/user/react-drm.service"
 
     local ext_dir="$pkgdir/usr/share/gnome-shell/extensions/window-monitor-pro@muhammed.hussien2030.gmail.com"
     install -d -m0755 "$ext_dir"
