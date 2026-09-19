@@ -1,0 +1,19 @@
+post_install() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl enable --now t2-fancontrol.service
+    fi
+}
+
+post_upgrade() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl try-restart t2-fancontrol.service
+    fi
+}
+
+pre_remove() {
+    if [ -d /run/systemd/system ]; then
+        systemctl disable --now t2-fancontrol.service
+    fi
+}

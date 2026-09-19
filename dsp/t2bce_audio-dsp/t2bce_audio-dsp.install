@@ -1,0 +1,41 @@
+pre_upgrade() {
+    local f
+    for f in /etc/wireplumber/wireplumber.conf.d/51-kait2en-t2-dsp.conf /etc/pipewire/pipewire.conf.d/50-kait2en-quantum.conf; do
+        if [[ -e "$f" ]] && ! pacman -Qqo "$f" >/dev/null 2>&1; then
+            rm -f "$f"
+        fi
+    done
+}
+
+post_install() {
+    if [[ -x /usr/lib/t2-dsp/package-actions ]]; then
+        bash /usr/lib/t2-dsp/package-actions configure
+    fi
+    if [[ -d /run/udev ]]; then
+        udevadm control --reload-rules
+        udevadm trigger -s sound 2>/dev/null || true
+    fi
+}
+
+post_upgrade() {
+    if [[ -x /usr/lib/t2-dsp/package-actions ]]; then
+        bash /usr/lib/t2-dsp/package-actions configure
+    fi
+    if [[ -d /run/udev ]]; then
+        udevadm control --reload-rules
+        udevadm trigger -s sound 2>/dev/null || true
+    fi
+}
+
+pre_remove() {
+    if [[ -x /usr/lib/t2-dsp/package-actions ]]; then
+        bash /usr/lib/t2-dsp/package-actions removed
+    fi
+}
+
+post_remove() {
+    if [[ -d /run/udev ]]; then
+        udevadm control --reload-rules
+    fi
+    echo "t2bce_audio-dsp: reboot to finish removing DSP"
+}
