@@ -1,0 +1,24 @@
+post_install() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl enable kait2en-dgpu-off.service
+    fi
+}
+
+post_upgrade() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+    fi
+}
+
+pre_remove() {
+    if [ -d /run/systemd/system ]; then
+        systemctl disable --now kait2en-dgpu-off.service kait2en-dgpu-suspend.service kait2en-amdgpu-profile.service kait2en-amdgpu-profile-resume.service
+    fi
+}
+
+post_remove() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+    fi
+}
