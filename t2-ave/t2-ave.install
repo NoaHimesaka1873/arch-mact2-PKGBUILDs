@@ -1,0 +1,19 @@
+post_install() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl enable --now kait2en-t2-remote.service
+    fi
+}
+
+post_upgrade() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl try-restart kait2en-t2-remote.service
+    fi
+}
+
+pre_remove() {
+    if [ -d /run/systemd/system ]; then
+        systemctl disable --now kait2en-t2-remote.service
+    fi
+}
