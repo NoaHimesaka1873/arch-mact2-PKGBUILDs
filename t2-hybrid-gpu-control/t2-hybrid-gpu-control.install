@@ -1,25 +1,5 @@
 post_install() {
-    if [ -d /run/systemd/system ]; then
-        for u in kait2en-dgpu-off.service kait2en-dgpu-suspend.service kait2en-amdgpu-profile.service kait2en-amdgpu-profile-resume.service; do
-            if systemctl is-active --quiet "$u"; then
-                systemctl stop "$u"
-            fi
-            if systemctl is-enabled --quiet "$u"; then
-                systemctl disable "$u"
-            fi
-        done
-        systemctl daemon-reload
-    fi
+    [ -d /run/systemd/system ] && systemctl stop kait2en-dgpu-off.service kait2en-dgpu-suspend.service kait2en-amdgpu-profile.service kait2en-amdgpu-profile-resume.service 2>/dev/null || true
+    systemctl disable kait2en-dgpu-off.service kait2en-dgpu-suspend.service kait2en-amdgpu-profile.service kait2en-amdgpu-profile-resume.service 2>/dev/null || true
 }
 
-post_upgrade() {
-    if [ -d /run/systemd/system ]; then
-        systemctl daemon-reload
-    fi
-}
-
-post_remove() {
-    if [ -d /run/systemd/system ]; then
-        systemctl daemon-reload
-    fi
-}

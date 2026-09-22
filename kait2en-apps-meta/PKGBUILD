@@ -3,7 +3,7 @@
 
 pkgname=kait2en-apps-meta
 pkgver=0.1
-pkgrel=1
+pkgrel=2
 pkgdesc="KaiT2en applications metapackage."
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
@@ -17,4 +17,5 @@ optdepends=(
     't2-hybrid-gpu-control: Dynamic PRIME offload for MacBookPro15,1'
     't2-dgpu-control: Discrete GPU power control for MacBookPro15,3/16,1/16,4'
     't2-journal: Developer tool for Apple T2 bridgeOS logs'
+    't2-force-click: Trackpad click and force-click pressure and action configuration'
 )
