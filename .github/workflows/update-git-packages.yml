@@ -1,0 +1,56 @@
+name: Update Git packages
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight
+  workflow_dispatch:
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run pkgver() for every Git package
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -v "$RUNNER_TEMP/out:/out" \
+            archlinux:base-devel \
+            /repo/.github/scripts/update-git-packages.sh
+
+      - name: Prepare pull request body
+        id: body
+        run: |
+          {
+            echo "Automatically generated pull request."
+            echo
+            echo "Updates Git packages to their latest upstream commits:"
+            echo
+            cat "$RUNNER_TEMP/out/changes.md"
+          } > "$RUNNER_TEMP/out/body.md"
+          echo "path=$RUNNER_TEMP/out/body.md" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: '*/PKGBUILD'
+          commit-message: "Update Git packages"
+          title: "Update Git packages"
+          body-path: ${{ steps.body.outputs.path }}
+          branch: update-git-packages
+          delete-branch: true
+
+      - name: Report failed packages
+        run: |
+          if [ -s "$RUNNER_TEMP/out/failed.txt" ]; then
+            echo "pkgver() failed for:"
+            cat "$RUNNER_TEMP/out/failed.txt"
+            exit 1
+          fi
