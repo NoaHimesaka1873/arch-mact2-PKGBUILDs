@@ -6,16 +6,9 @@ post_install() {
         fi
     fi
 
-    if [ -d /run/systemd/system ]; then
-        systemctl daemon-reload
-        if systemctl is-active --quiet dbus-broker.service; then
-            systemctl reload dbus-broker.service
-        elif systemctl is-active --quiet dbus.service; then
-            systemctl reload dbus.service
-        fi
-        systemctl enable --now kait2en-t2-touchid.service
-        systemctl try-restart fprintd.service
-    fi
+    systemctl enable kait2en-t2-touchid.service
+    [ -d /run/systemd/system ] && systemctl start kait2en-t2-touchid.service
+    [ -d /run/systemd/system ] && systemctl try-restart fprintd.service
 
     echo "==> [kait2en] T2 Touch ID PAM Configuration Status:"
     if grep -q 'pam_fprintd.so' /etc/pam.d/sudo 2>/dev/null; then
@@ -40,20 +33,11 @@ post_install() {
 }
 
 post_upgrade() {
-    if [ -d /run/systemd/system ]; then
-        if systemctl is-active --quiet dbus-broker.service; then
-            systemctl reload dbus-broker.service
-        elif systemctl is-active --quiet dbus.service; then
-            systemctl reload dbus.service
-        fi
-        systemctl try-restart kait2en-t2-touchid.service
-        systemctl try-restart fprintd.service
-    fi
+    [ -d /run/systemd/system ] && systemctl try-restart kait2en-t2-touchid.service fprintd.service
 }
 
 pre_remove() {
-    if [ -d /run/systemd/system ]; then
-        systemctl disable --now kait2en-t2-touchid.service
-        systemctl try-restart fprintd.service
-    fi
+    [ -d /run/systemd/system ] && systemctl stop kait2en-t2-touchid.service
+    [ -d /run/systemd/system ] && systemctl try-restart fprintd.service
+    systemctl disable kait2en-t2-touchid.service
 }

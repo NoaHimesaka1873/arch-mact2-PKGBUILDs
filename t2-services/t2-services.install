@@ -1,21 +1,13 @@
 post_install() {
-    if [ -d /run/systemd/system ]; then
-        systemctl daemon-reload
-        if ! systemctl is-enabled --quiet t2-services-suspend.service; then
-            systemctl preset t2-services-suspend.service
-        fi
-    fi
+    systemctl enable t2-services-suspend.service
+    [ -d /run/systemd/system ] && systemctl try-reload-or-restart NetworkManager.service
 }
 
 post_upgrade() {
-    if [ -d /run/systemd/system ]; then
-        systemctl daemon-reload
-        systemctl try-restart t2-services-suspend.service
-    fi
+    post_install
 }
 
 pre_remove() {
-    if [ -d /run/systemd/system ]; then
-        systemctl disable --now t2-services-suspend.service
-    fi
+    [ -d /run/systemd/system ] && systemctl stop t2-services-suspend.service
+    systemctl disable t2-services-suspend.service
 }
