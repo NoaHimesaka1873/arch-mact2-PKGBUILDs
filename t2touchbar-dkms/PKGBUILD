@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=t2touchbar-dkms
-pkgver=0.1.r12.4a77688
-pkgrel=2
+pkgver=0.1.r13.ce07b03
+pkgrel=1
 pkgdesc="KaiT2en TouchBar module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"

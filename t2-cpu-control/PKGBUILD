@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=t2-cpu-control
-pkgver=0.02.r13.c23ede9
-pkgrel=3
+pkgver=0.02.r14.295f84e
+pkgrel=1
 pkgdesc="CPU power limit and thermal telemetry controller"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
