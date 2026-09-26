@@ -81,10 +81,28 @@ jobs:
           EOF
           pacman -Sy
 
+      - name: Install build dependencies
+        run: |
+          cd ${{ matrix.package }}
+          SRCINFO=$(sudo -u builduser makepkg --printsrcinfo)
+          # makedepends/checkdepends must resolve
+          MAKEDEPS=$(echo "$SRCINFO" | awk -F' = ' '/^\t(make|check)depends(_x86_64)? = /{print $2}' | sort -u)
+          if [ -n "$MAKEDEPS" ]; then
+            pacman -S --needed --noconfirm $MAKEDEPS
+          fi
+          # depends are best-effort: ones built in this same run aren't in the repo yet
+          for dep in $(echo "$SRCINFO" | awk -F' = ' '/^\tdepends(_x86_64)? = /{print $2}' | sort -u); do
+            if pacman -Sp "$dep" >/dev/null 2>&1; then
+              pacman -S --needed --noconfirm "$dep"
+            else
+              echo "::warning::Skipping unresolvable dependency: $dep"
+            fi
+          done
+
       - name: Build package
         run: |
           cd ${{ matrix.package }}
-          sudo -u builduser makepkg -s --nodeps --noconfirm
+          sudo -u builduser makepkg --nodeps --noconfirm
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
