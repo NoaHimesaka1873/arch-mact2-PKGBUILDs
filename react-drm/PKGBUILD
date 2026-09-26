@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=react-drm
-pkgver=0.1.0.r228.547be16
-pkgrel=10
+pkgver=0.1.0.r232.c9edaa8
+pkgrel=1
 pkgdesc="Touch Bar control center"
 arch=('x86_64')
 url="https://github.com/dev-muhammad-adel/react-drm-for-touchbar"
