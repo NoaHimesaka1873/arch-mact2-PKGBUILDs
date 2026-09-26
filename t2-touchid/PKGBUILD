@@ -4,7 +4,7 @@
 pkgname=t2-touchid
 pkgver=0.1.0.r11.afb6fde
 pkgrel=3
-pkgdesc="Apple T2 Touch ID bridge daemon for fprintd"
+pkgdesc="Touch ID bridge daemon for fprintd"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-3.0-or-later')
@@ -17,6 +17,7 @@ replaces=("$pkgname-git")
 backup=('etc/kait2en/t2-touchid.conf')
 install="$pkgname.install"
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
+[[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')
 
 pkgver() {

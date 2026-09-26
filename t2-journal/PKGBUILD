@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=t2-journal
-pkgver=0.1.0.r16.fbc43ad
-pkgrel=1
+pkgver=0.1.0.r15.6cf72ad
+pkgrel=3
 pkgdesc="Utility for Apple T2 bridgeOS logs"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
@@ -14,6 +14,7 @@ provides=("$pkgname-git")
 conflicts=("$pkgname-git")
 replaces=("$pkgname-git")
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
+[[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')
 
 pkgver() {

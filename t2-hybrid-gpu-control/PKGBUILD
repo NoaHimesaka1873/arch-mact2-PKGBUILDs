@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=t2-hybrid-gpu-control
-pkgver=0.1.0.r11.945b164
-pkgrel=1
+pkgver=0.1.0.r9.1e444a6
+pkgrel=3
 pkgdesc="Configure hybrid graphics on MacBookPro15,1/16,1/16,4'"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
@@ -16,6 +16,7 @@ conflicts=('t2-dgpu-control' "$pkgname-git")
 replaces=("$pkgname-git")
 install="$pkgname.install"
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
+[[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')
 
 pkgver() {
