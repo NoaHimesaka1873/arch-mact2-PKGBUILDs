@@ -84,7 +84,7 @@ jobs:
       - name: Build package
         run: |
           cd ${{ matrix.package }}
-          sudo -u builduser makepkg -s --noconfirm
+          sudo -u builduser makepkg -s --nodeps --noconfirm
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
