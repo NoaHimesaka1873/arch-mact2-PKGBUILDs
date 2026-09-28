@@ -14,7 +14,6 @@ makedepends=('cargo' 'git' 'make')
 provides=("$pkgname-git")
 conflicts=("$pkgname-git")
 replaces=("$pkgname-git")
-backup=('etc/kait2en/t2-touchid.conf')
 install="$pkgname.install"
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
 [[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
@@ -34,6 +33,6 @@ build() {
 
 package() {
     local src="$srcdir/KaiT2en-Fedora/t2-services/t2-touchid"
-    make -C "$src" install PREFIX=/usr DESTDIR="$pkgdir" TARGET_DIR="$src/target"
+    make -C "$src" install PREFIX=/usr DESTDIR="$pkgdir" SYSCONFDIR=/usr/share TARGET_DIR="$src/target"
     install -D -m0644 "$srcdir/KaiT2en-Fedora/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
