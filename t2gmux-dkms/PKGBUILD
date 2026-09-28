@@ -2,7 +2,7 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=t2gmux-dkms
-pkgver=0.8.r12.73a1b8e
+pkgver=0.8.r15.d347f72
 pkgrel=1
 pkgdesc="KaiT2en GMUX module"
 arch=('x86_64')
