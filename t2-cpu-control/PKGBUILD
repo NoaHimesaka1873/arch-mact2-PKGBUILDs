@@ -3,13 +3,17 @@
 
 pkgname=t2-cpu-control
 pkgver=0.02.r14.295f84e
-pkgrel=1
+pkgrel=2
 pkgdesc="CPU power limit and thermal telemetry controller"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-3.0-or-later')
 depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'polkit' 'msr-tools' 'kait2en-assets')
-optdepends=('linux-headers' 't2smc-dkms')
+optdepends=(
+    'linux-t2-headers: for kernel benchmark on T2 kernel'
+    'linux-headers: for kernel benchmark on Arch kernel'
+    't2smc-dkms: for SMC control'
+)
 makedepends=('git')
 provides=("$pkgname-git")
 conflicts=("$pkgname-git")
