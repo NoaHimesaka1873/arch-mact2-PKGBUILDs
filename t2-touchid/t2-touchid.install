@@ -1,14 +1,40 @@
-post_install() {
-    if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ] && [ -f /etc/kait2en/t2-touchid.conf ]; then
-        if grep -q '^T2_TOUCHID_BIND_USER=none' /etc/kait2en/t2-touchid.conf; then
-            sed -i "s/^T2_TOUCHID_BIND_USER=none/T2_TOUCHID_BIND_USER=$SUDO_USER/" /etc/kait2en/t2-touchid.conf
-            echo "==> [kait2en] Bound Touch ID to user '$SUDO_USER' in /etc/kait2en/t2-touchid.conf"
-        fi
+_detect_user() {
+    [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ] && bind_user="$SUDO_USER" && return
+
+    local seat_user=$(loginctl list-sessions --no-legend 2>/dev/null | awk '$4 == "seat0" && $3 != "root" && $3 != "" {print $3; exit}')
+    [ -n "$seat_user" ] && bind_user="$seat_user" && return
+
+    local login_user=$(logname 2>/dev/null)
+    [ -n "$login_user" ] && [ "$login_user" != "root" ] && bind_user="$login_user" && return
+
+    local uid_user=$(getent passwd | awk -F: '$3 >= 1000 && $3 < 65000 && $7 !~ /(nologin|false)$/ {print $1; exit}')
+    [ -n "$uid_user" ] && bind_user="$uid_user"
+}
+
+_setup_config() {
+    local etc_conf="/etc/kait2en/t2-touchid.conf"
+
+    local bind_user=""; _detect_user
+    [ -z "$bind_user" ] && echo "==> [kait2en] No user detected; set T2_TOUCHID_BIND_USER in $etc_conf" && return 0
+
+    if [ ! -f "$etc_conf" ]; then
+        install -d -m 0755 /etc/kait2en
+        echo "T2_TOUCHID_BIND_USER=$bind_user" > "$etc_conf"
+        echo "==> [kait2en] Bound Touch ID to user '$bind_user' in $etc_conf"
+    elif grep -q '^T2_TOUCHID_BIND_USER=none' "$etc_conf"; then
+        sed -i "s/^T2_TOUCHID_BIND_USER=none/T2_TOUCHID_BIND_USER=$bind_user/" "$etc_conf"
+        echo "==> [kait2en] Bound Touch ID to user '$bind_user' in $etc_conf"
+    elif ! grep -q '^T2_TOUCHID_BIND_USER=' "$etc_conf"; then
+        echo "T2_TOUCHID_BIND_USER=$bind_user" >> "$etc_conf"
+        echo "==> [kait2en] Bound Touch ID to user '$bind_user' in $etc_conf"
     fi
+}
+
+post_install() {
+    _setup_config
 
     systemctl enable kait2en-t2-touchid.service
-    [ -d /run/systemd/system ] && systemctl start kait2en-t2-touchid.service
-    [ -d /run/systemd/system ] && systemctl try-restart fprintd.service
+    [ -d /run/systemd/system ] && systemctl restart kait2en-t2-touchid.service fprintd.service
 
     echo "==> [kait2en] T2 Touch ID PAM Configuration Status:"
     if grep -q 'pam_fprintd.so' /etc/pam.d/sudo 2>/dev/null; then
@@ -33,6 +59,7 @@ post_install() {
 }
 
 post_upgrade() {
+    _setup_config
     [ -d /run/systemd/system ] && systemctl try-restart kait2en-t2-touchid.service fprintd.service
 }
 
