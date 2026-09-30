@@ -3,16 +3,19 @@
 
 pkgname=t2bce-dkms
 pkgver=0.01.r41.a02d231
-pkgrel=1
+pkgrel=2
 pkgdesc="KaiT2en BCE (dma, core, vhci, audio, ave) module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-2.0-only')
 depends=('dkms')
-optdepends=('linux' 'linux-headers')
+optdepends=(
+    'linux-t2-headers: build modules for T2 kernel'
+    'linux-headers: build modules for Arch kernel'
+)
 makedepends=('git')
 provides=('t2bce' 't2bce_core' 't2bce_audio' 't2bce_ave' 't2bce_dma' 't2bce_vhci')
-conflicts=('linux-t2' 't2bce_core-dkms' 't2bce_audio-dkms' 't2bce_ave-dkms' 't2bce_dma-dkms' 't2bce_vhci-dkms')
+conflicts=('t2bce_core-dkms' 't2bce_audio-dkms' 't2bce_ave-dkms' 't2bce_dma-dkms' 't2bce_vhci-dkms')
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
 [[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')

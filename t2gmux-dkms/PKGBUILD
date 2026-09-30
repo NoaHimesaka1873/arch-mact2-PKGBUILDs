@@ -3,16 +3,19 @@
 
 pkgname=t2gmux-dkms
 pkgver=0.8.r16.8760e41
-pkgrel=1
+pkgrel=2
 pkgdesc="KaiT2en GMUX module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-2.0-only')
 depends=('dkms')
-optdepends=('linux' 'linux-headers')
+optdepends=(
+    'linux-t2-headers: build modules for T2 kernel'
+    'linux-headers: build modules for Arch kernel'
+)
 makedepends=('git')
 provides=('t2gmux')
-conflicts=('linux-t2' 't2gmux')
+conflicts=('t2gmux')
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
 [[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')

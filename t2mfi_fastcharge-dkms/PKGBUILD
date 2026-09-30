@@ -3,16 +3,19 @@
 
 pkgname=t2mfi_fastcharge-dkms
 pkgver=0.1.r2.ee1dbfe
-pkgrel=2
+pkgrel=3
 pkgdesc="KaiT2en MFI fast charge module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-2.0-only')
 depends=('dkms')
-optdepends=('linux' 'linux-headers')
+optdepends=(
+    'linux-t2-headers: build modules for T2 kernel'
+    'linux-headers: build modules for Arch kernel'
+)
 makedepends=('git')
 provides=('t2mfi_fastcharge')
-conflicts=('linux-t2' 't2mfi_fastcharge')
+conflicts=('t2mfi_fastcharge')
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
 [[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')

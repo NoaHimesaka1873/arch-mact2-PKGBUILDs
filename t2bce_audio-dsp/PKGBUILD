@@ -3,7 +3,7 @@
 
 pkgname=t2bce_audio-dsp
 pkgver=r7.1aac07d
-pkgrel=1
+pkgrel=2
 pkgdesc="Model-specific host-side audio DSP"
 arch=('any')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
@@ -12,7 +12,7 @@ depends=('t2bce-dkms' 't2bce_audio-alsa-ucm-conf' 'pipewire' 'pipewire-audio' 'p
 optdepends=('bankstown: Bankstown LV2 Plugin (Only available on AUR)')
 makedepends=('git' 'python' 'make')
 provides=('t2-dsp' "$pkgname-git")
-conflicts=('linux-t2' 't2-dsp' "$pkgname-git")
+conflicts=('t2-dsp' "$pkgname-git")
 replaces=("$pkgname-git")
 install="$pkgname.install"
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
