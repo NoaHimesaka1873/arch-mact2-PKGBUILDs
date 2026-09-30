@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=kait2en-assets
-pkgver=r8.d6ce476
-pkgrel=3
+pkgver=r9.204cb32
+pkgrel=1
 pkgdesc="Shared branding assets and fonts"
 arch=('any')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
