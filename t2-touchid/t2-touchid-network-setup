@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+profile_uuid=dcb4255f-9151-4fd4-af8e-05ea59a08ed7
+
+is_t2_interface() {
+    local iface="$1"
+    local device driver parent
+
+    [[ -e "/sys/class/net/$iface/device" ]] || return 1
+
+    device="$(readlink -f "/sys/class/net/$iface/device")"
+    driver="$(readlink -f "$device/driver" 2>/dev/null || true)"
+    [[ "${driver##*/}" == cdc_ncm ]] || return 1
+
+    parent="$device"
+    while [[ "$parent" != / ]]; do
+        if [[ -r "$parent/idVendor" && -r "$parent/idProduct" ]] &&
+           [[ "$(<"$parent/idVendor")" == 05ac ]] &&
+           [[ "$(<"$parent/idProduct")" == 8233 ]]; then
+            return 0
+        fi
+        parent="${parent%/*}"
+        [[ -n "$parent" ]] || parent=/
+    done
+
+    return 1
+}
+
+find_t2_interface() {
+    local net iface found=""
+
+    for net in /sys/class/net/*; do
+        [[ -e "$net" ]] || continue
+        iface="${net##*/}"
+        is_t2_interface "$iface" || continue
+
+        if [[ -n "$found" ]]; then
+            return 2
+        fi
+        found="$iface"
+    done
+
+    [[ -n "$found" ]] || return 1
+    printf '%s\n' "$found"
+}
+
+wait_for_interface() {
+    local iface status
+
+    for _ in {1..200}; do
+        if iface="$(find_t2_interface)"; then
+            printf '%s\n' "$iface"
+            return 0
+        else
+            status=$?
+            if (( status == 2 )); then
+                echo "t2-touchid: multiple Apple T2 CDC-NCM interfaces found" >&2
+                return 1
+            fi
+        fi
+        sleep 0.1
+    done
+
+    return 1
+}
+
+carrier_up() {
+    local iface="$1"
+
+    [[ -r "/sys/class/net/$iface/carrier" ]] &&
+        [[ "$(<"/sys/class/net/$iface/carrier")" == 1 ]]
+}
+
+wait_for_carrier() {
+    local iface="$1"
+
+    for _ in {1..50}; do
+        carrier_up "$iface" && return 0
+        sleep 0.1
+    done
+
+    return 1
+}
+
+ipv6_link_local_up() {
+    local iface="$1"
+
+    [[ -r /proc/net/if_inet6 ]] || return 1
+
+    while read -r address _ _ scope _ name; do
+        [[ "$name" == "$iface" ]] || continue
+        [[ "$scope" == 20 ]] || continue
+        [[ "$address" == fe8* || "$address" == fe9* ||
+           "$address" == fea* || "$address" == feb* ]] || continue
+        return 0
+    done < /proc/net/if_inet6
+
+    return 1
+}
+
+wait_for_ipv6() {
+    local iface="$1"
+
+    for _ in {1..100}; do
+        ipv6_link_local_up "$iface" && return 0
+        sleep 0.1
+    done
+
+    return 1
+}
+
+iface="$(wait_for_interface)" || {
+    echo "t2-touchid: Apple 05ac:8233 CDC-NCM interface not found" >&2
+    exit 1
+}
+
+if ! carrier_up "$iface"; then
+    usb_interface="$(basename "$(readlink -f "/sys/class/net/$iface/device")")"
+
+    [[ -e "/sys/bus/usb/drivers/cdc_ncm/$usb_interface" ]] || {
+        echo "t2-touchid: cdc_ncm binding for $iface not found" >&2
+        exit 1
+    }
+
+    printf '%s' "$usb_interface" > /sys/bus/usb/drivers/cdc_ncm/unbind
+    sleep 1
+    printf '%s' "$usb_interface" > /sys/bus/usb/drivers/cdc_ncm/bind
+
+    iface="$(wait_for_interface)" || {
+        echo "t2-touchid: CDC-NCM interface did not return after rebind" >&2
+        exit 1
+    }
+
+    wait_for_carrier "$iface" || {
+        echo "t2-touchid: CDC-NCM link did not report carrier after rebind" >&2
+        exit 1
+    }
+fi
+
+nmcli general reload >/dev/null
+nmcli connection reload
+nmcli device set "$iface" managed yes >/dev/null
+
+if ! nmcli -t -f UUID connection show | grep -Fxq "$profile_uuid"; then
+    echo "t2-touchid: NetworkManager profile $profile_uuid was not loaded" >&2
+    exit 1
+fi
+
+active_uuid="$(
+    nmcli -t --escape no -f UUID,DEVICE connection show --active 2>/dev/null |
+        awk -F: -v dev="$iface" '$2 == dev { print $1; exit }'
+)"
+
+if [[ "$active_uuid" != "$profile_uuid" ]] || ! ipv6_link_local_up "$iface"; then
+    nmcli --wait 15 connection up uuid "$profile_uuid" ifname "$iface" >/dev/null
+fi
+
+wait_for_ipv6 "$iface" || {
+    echo "t2-touchid: $iface has no IPv6 link-local address after NetworkManager activation" >&2
+    exit 1
+}

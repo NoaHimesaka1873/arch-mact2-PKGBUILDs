@@ -1,70 +1,50 @@
-_detect_user() {
-    [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ] && bind_user="$SUDO_USER" && return
+_enable_pam() {
+    local pam_file=/etc/pam.d/system-local-login
+    local begin='# t2-touchid: begin'
+    local end='# t2-touchid: end'
+    local rule='auth      sufficient pam_fprintd.so timeout=5 max-tries=1'
 
-    local seat_user=$(loginctl list-sessions --no-legend 2>/dev/null | awk '$4 == "seat0" && $3 != "root" && $3 != "" {print $3; exit}')
-    [ -n "$seat_user" ] && bind_user="$seat_user" && return
+    [ -f "$pam_file" ] || return 0
+    grep -Fxq "$begin" "$pam_file" && return 0
+    grep -Eq '^[[:space:]]*auth[[:space:]]+.*pam_fprintd\.so([[:space:]]|$)' "$pam_file" && return 0
+    grep -Eq '^[[:space:]]*auth[[:space:]]+include[[:space:]]+system-login[[:space:]]*$' "$pam_file" || return 0
 
-    local login_user=$(logname 2>/dev/null)
-    [ -n "$login_user" ] && [ "$login_user" != "root" ] && bind_user="$login_user" && return
-
-    local uid_user=$(getent passwd | awk -F: '$3 >= 1000 && $3 < 65000 && $7 !~ /(nologin|false)$/ {print $1; exit}')
-    [ -n "$uid_user" ] && bind_user="$uid_user"
+    sed -i -E \
+        "/^[[:space:]]*auth[[:space:]]+include[[:space:]]+system-login[[:space:]]*$/i\\
+${begin}\\
+${rule}\\
+${end}" \
+        "$pam_file"
 }
 
-_setup_config() {
-    local etc_conf="/etc/kait2en/t2-touchid.conf"
-
-    local bind_user=""; _detect_user
-    [ -z "$bind_user" ] && echo "==> [kait2en] No user detected; set T2_TOUCHID_BIND_USER in $etc_conf" && return 0
-
-    if [ ! -f "$etc_conf" ]; then
-        install -d -m 0755 /etc/kait2en
-        echo "T2_TOUCHID_BIND_USER=$bind_user" > "$etc_conf"
-        echo "==> [kait2en] Bound Touch ID to user '$bind_user' in $etc_conf"
-    elif grep -q '^T2_TOUCHID_BIND_USER=none' "$etc_conf"; then
-        sed -i "s/^T2_TOUCHID_BIND_USER=none/T2_TOUCHID_BIND_USER=$bind_user/" "$etc_conf"
-        echo "==> [kait2en] Bound Touch ID to user '$bind_user' in $etc_conf"
-    elif ! grep -q '^T2_TOUCHID_BIND_USER=' "$etc_conf"; then
-        echo "T2_TOUCHID_BIND_USER=$bind_user" >> "$etc_conf"
-        echo "==> [kait2en] Bound Touch ID to user '$bind_user' in $etc_conf"
-    fi
+_disable_pam() {
+    local pam_file=/etc/pam.d/system-local-login
+    [ -f "$pam_file" ] || return 0
+    sed -i '/^# t2-touchid: begin$/,/^# t2-touchid: end$/d' "$pam_file"
 }
 
 post_install() {
-    _setup_config
+    _enable_pam
 
-    systemctl enable kait2en-t2-touchid.service
-    [ -d /run/systemd/system ] && systemctl restart kait2en-t2-touchid.service fprintd.service
-
-    echo "==> [kait2en] T2 Touch ID PAM Configuration Status:"
-    if grep -q 'pam_fprintd.so' /etc/pam.d/sudo 2>/dev/null; then
-        echo "    [✓] sudo: pam_fprintd.so active"
-    else
-        echo "    [ ] sudo: add 'auth sufficient pam_fprintd.so' to /etc/pam.d/sudo"
-    fi
-
-    if grep -q 'pam_fprintd.so' /etc/pam.d/polkit-1 2>/dev/null; then
-        echo "    [✓] polkit-1: pam_fprintd.so active"
-    else
-        echo "    [ ] polkit-1: add 'auth sufficient pam_fprintd.so' to /etc/pam.d/polkit-1"
-    fi
-
-    if grep -q 'pam_fprintd.so' /etc/pam.d/system-auth 2>/dev/null; then
-        echo "    [✓] system-auth: pam_fprintd.so active"
-    else
-        echo "    [ ] system-auth: add 'auth sufficient pam_fprintd.so' to /etc/pam.d/system-auth"
-    fi
-    echo "==> Note: Fingers must be enrolled under macOS first."
-    echo "    The SEP biometric keybag requires one unlock in macOS after power loss/cold boot."
+    echo
+    echo "t2-touchid has been installed successfully!"
+    echo "Set T2_TOUCHID_BIND_USER in /etc/kait2en/t2-touchid.conf if you want automatic binding."
+    echo "Then enable the service with:"
+    echo
+    echo "  sudo systemctl enable --now kait2en-t2-touchid.service"
+    echo
 }
 
 post_upgrade() {
-    _setup_config
-    [ -d /run/systemd/system ] && systemctl try-restart kait2en-t2-touchid.service fprintd.service
+    _enable_pam
+
+    if systemctl is-active --quiet kait2en-t2-touchid.service 2>/dev/null; then
+        systemctl restart t2-touchid-network-setup.service >/dev/null 2>&1 || true
+        systemctl restart kait2en-t2-touchid.service >/dev/null 2>&1 || true
+    fi
 }
 
 pre_remove() {
-    [ -d /run/systemd/system ] && systemctl stop kait2en-t2-touchid.service
-    [ -d /run/systemd/system ] && systemctl try-restart fprintd.service
-    systemctl disable kait2en-t2-touchid.service
+    _disable_pam
+    systemctl disable --now kait2en-t2-touchid.service >/dev/null 2>&1 || true
 }
