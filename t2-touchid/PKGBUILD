@@ -1,38 +1,90 @@
-# Maintainer: André Eikmeyer (deqrocks) <dev@deq.rocks>
-# Packager: Turann_ <turanull000@gmail.com>
+# Maintainer: Sl (Shahaf Levi) <arch@slsrepo.com>
 
 pkgname=t2-touchid
-pkgver=0.1.0.r16.0124382
+pkgver=0.1.1
 pkgrel=1
-pkgdesc="Touch ID bridge daemon for fprintd"
+pkgdesc="Apple T2 Touch ID bridge for fprintd"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-3.0-or-later')
-depends=('gcc-libs' 'fprintd' 'libfprint' 't2-services')
-optdepends=('react-drm')
-makedepends=('cargo' 'git' 'make')
-provides=("$pkgname-git")
-conflicts=("$pkgname-git")
-replaces=("$pkgname-git")
-install="$pkgname.install"
-source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
-[[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
-sha256sums=('SKIP')
+depends=(
+  'fprintd'
+  'libfprint'
+  'networkmanager'
+)
+makedepends=('cargo' 'git')
+install="${pkgname}.install"
+
+_source_dir=KaiT2en-Fedora
+
+source=(
+  "${_source_dir}::git+https://github.com/kaiT2en/KaiT2en-Fedora.git#main"
+  't2-touchid-network-setup'
+  't2-touchid-network-setup.service'
+  '10-network-setup.conf'
+  't2-touchid.nmconnection'
+)
+sha256sums=(
+  'SKIP'
+  'SKIP'
+  'SKIP'
+  'SKIP'
+  'SKIP'
+)
 
 pkgver() {
-    local src="$srcdir/KaiT2en-Fedora/t2-services/t2-touchid"
-    local ver=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$src/Cargo.toml" | head -n1)
-    printf "%s.r%s.%s" "${ver:-0.1.0}" "$(git -C "$srcdir/KaiT2en-Fedora" rev-list --count HEAD -- apps/t2-touchid t2-services/t2-touchid)" "$(git -C "$srcdir/KaiT2en-Fedora" log -1 --format="%h" -- apps/t2-touchid t2-services/t2-touchid)"
+  cd "$_source_dir"
+
+  printf '0.1.0.r%s.g%s' \
+    "$(git rev-list --count HEAD)" \
+    "$(git rev-parse --short=7 HEAD)"
+}
+
+prepare() {
+  cd "${_source_dir}/t2-services/t2-touchid"
+  export CARGO_HOME="${srcdir}/cargo-home"
+  cargo fetch --locked
 }
 
 build() {
-    local src="$srcdir/KaiT2en-Fedora/t2-services/t2-touchid"
-    cd "$src"
-    cargo build --release
+  cd "${_source_dir}/t2-services/t2-touchid"
+  export CARGO_HOME="${srcdir}/cargo-home"
+  export CARGO_NET_OFFLINE=true
+  make build CARGO_FLAGS='--frozen'
+}
+
+check() {
+  cd "${_source_dir}/t2-services/t2-touchid"
+  export CARGO_HOME="${srcdir}/cargo-home"
+  export CARGO_NET_OFFLINE=true
+  make test CARGO_FLAGS='--frozen'
 }
 
 package() {
-    local src="$srcdir/KaiT2en-Fedora/t2-services/t2-touchid"
-    make -C "$src" install PREFIX=/usr DESTDIR="$pkgdir" SYSCONFDIR=/usr/share TARGET_DIR="$src/target"
-    install -D -m0644 "$srcdir/KaiT2en-Fedora/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  cd "${_source_dir}"
+
+  make -C t2-services/t2-touchid install \
+    PREFIX=/usr \
+    DESTDIR="${pkgdir}" \
+    SYSTEMD_UNIT_DIR=/usr/lib/systemd/system \
+    DATADIR=/usr/share \
+    SYSCONFDIR=/usr/share
+
+  install -Dm0755 "${srcdir}/t2-touchid-network-setup" \
+    "${pkgdir}/usr/libexec/t2-touchid/network-setup"
+
+  install -Dm0644 "${srcdir}/t2-touchid-network-setup.service" \
+    "${pkgdir}/usr/lib/systemd/system/t2-touchid-network-setup.service"
+
+  install -Dm0644 "${srcdir}/10-network-setup.conf" \
+    "${pkgdir}/usr/lib/systemd/system/kait2en-t2-touchid.service.d/10-network-setup.conf"
+
+  install -Dm0600 "${srcdir}/t2-touchid.nmconnection" \
+    "${pkgdir}/usr/lib/NetworkManager/system-connections/t2-touchid.nmconnection"
+
+  install -Dm0644 LICENSE \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+
+  install -Dm0644 t2-services/t2-touchid/README.md \
+    "${pkgdir}/usr/share/doc/${pkgname}/README.md"
 }
