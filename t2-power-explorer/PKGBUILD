@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=t2-power-explorer
-pkgver=0.1.0.r9.1e444a6
-pkgrel=3
+pkgver=0.1.0.r10.e452274
+pkgrel=1
 pkgdesc="Device topology and runtime power state explorer"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
