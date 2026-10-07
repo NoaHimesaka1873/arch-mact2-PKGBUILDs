@@ -10,7 +10,7 @@ pre_upgrade() {
 post_install() {
     [[ -x /usr/lib/t2-dsp/package-actions ]] && bash /usr/lib/t2-dsp/package-actions configure
     [ -d /run/udev ] && udevadm control --reload-rules
-    [ -d /run/udev ] && udevadm trigger -s sound 2>/dev/null || true
+    [ -d /run/udev ] && udevadm trigger -s sound || true
 }
 
 post_upgrade() {

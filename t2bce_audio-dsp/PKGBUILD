@@ -1,5 +1,5 @@
 # Maintainer: André Eikmeyer (deqrocks) <dev@deq.rocks>
-# Packager: Turann_ <turanull000@gmail.com>
+# Packager: Turann_ (turannul) <turanull000@gmail.com>
 
 pkgname=t2bce_audio-dsp
 pkgver=r9.b73f9e9
@@ -8,19 +8,20 @@ pkgdesc="Model-specific host-side audio DSP"
 arch=('any')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-3.0-or-later')
-depends=('t2bce-dkms' 't2bce_audio-alsa-ucm-conf' 'pipewire' 'pipewire-audio' 'pipewire-pulse' 'wireplumber' 'lsp-plugins-lv2' 'python')
-optdepends=('bankstown: Bankstown LV2 Plugin (Only available on AUR)')
+depends=('t2bce_audio' 't2bce_audio-alsa-ucm-conf' 'pipewire' 'pipewire-audio' 'pipewire-pulse' 'wireplumber' 'lsp-plugins-lv2' 'python' 'bankstown')
 makedepends=('git' 'python' 'make')
 provides=('t2-dsp' "$pkgname-git")
 conflicts=('t2-dsp' "$pkgname-git")
 replaces=("$pkgname-git")
 install="$pkgname.install"
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
-[[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')
 
 pkgver() {
-    printf "r%s.%s" "$(git -C "$srcdir/KaiT2en-Fedora" rev-list --count HEAD -- dsp)" "$(git -C "$srcdir/KaiT2en-Fedora" log -1 --format="%h" -- dsp)"
+  local _revision _commit _p="$srcdir/KaiT2en-Fedora"
+  _revision=$(git -C "$_p" rev-list --count HEAD -- dsp)
+  _commit=$(git -C "$_p" log -1 --format="%h" -- dsp)
+  printf 'r%s.%s' "${_revision:?}" "${_commit:?}"
 }
 
 build() {
