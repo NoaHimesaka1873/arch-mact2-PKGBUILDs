@@ -1,4 +1,4 @@
-name: Build Packages
+name: Build KaiT2en Packages
 
 on:
   push:
@@ -136,6 +136,7 @@ jobs:
         with:
           tag: "kait2en-latest"
           name: "KaiT2en Rolling Release"
+          body: "KaiT2en packages for Arch Linux on T2 Macs. No support, you're on your own."
           commit: kait2en
           artifacts: "artifacts/*.pkg.tar.zst"
           allowUpdates: true
