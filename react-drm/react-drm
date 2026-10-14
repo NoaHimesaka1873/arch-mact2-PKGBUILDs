@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec /usr/bin/node /opt/react-drm/linux-touchbar-control-center/dist/index.js "$@"

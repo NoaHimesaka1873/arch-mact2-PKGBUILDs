@@ -74,9 +74,11 @@ jobs:
 
       - name: Add arch-mact2 repository
         run: |
+          # The GitHub mirror is the fallback for when YuruMirror's rate limit drops a runner
           cat <<EOF | tee -a /etc/pacman.conf
           [arch-mact2]
           Server = https://mirror.funami.tech/arch-mact2/os/x86_64
+          Server = https://github.com/NoaHimesaka1873/arch-mact2-mirror/releases/download/release
           SigLevel = Never
           EOF
           pacman -Sy

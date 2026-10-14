@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec /usr/bin/python /opt/react-drm/config-gui-python/config_gui.py "$@"
