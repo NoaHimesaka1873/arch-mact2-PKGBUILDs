@@ -2,8 +2,8 @@
 # Packager: Turann_ <turanull000@gmail.com>
 
 pkgname=t2-ave
-pkgver=0.1.0.r4.afb6fde
-pkgrel=3
+pkgver=0.1.0.r5.31bc7b0
+pkgrel=1
 pkgdesc="T2 AVE encoder"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
