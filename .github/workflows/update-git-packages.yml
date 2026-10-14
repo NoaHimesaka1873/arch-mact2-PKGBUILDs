@@ -7,15 +7,6 @@ on:
 
 jobs:
   check-update:
-    # Scheduled runs only exist on the default branch, so this one covers kait2en too
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - branch: senpai
-            pr_branch: update-git-packages
-          - branch: kait2en
-            pr_branch: update-git-packages-kait2en
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -23,8 +14,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ matrix.branch }}
 
       - name: Run pkgver() for every Git package
         run: |
@@ -53,10 +42,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           add-paths: '*/PKGBUILD'
           commit-message: "Update Git packages"
-          title: "Update Git packages${{ matrix.branch != 'senpai' && format(' ({0})', matrix.branch) || '' }}"
+          title: "Update Git packages"
           body-path: ${{ steps.body.outputs.path }}
-          base: ${{ matrix.branch }}
-          branch: ${{ matrix.pr_branch }}
+          branch: update-git-packages
           delete-branch: true
 
       - name: Report failed packages
