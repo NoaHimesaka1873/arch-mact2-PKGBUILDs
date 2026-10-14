@@ -1,26 +1,27 @@
 # Maintainer: André Eikmeyer (deqrocks) <dev@deq.rocks>
-# Packager: Turann_ <turanull000@gmail.com>
+# Packager: Turann_ (turannul) <turanull000@gmail.com>
 
 pkgname=t2-services
 pkgver=r5.431d05b
-pkgrel=1
+pkgrel=2
 pkgdesc="Shared network and suspend integration"
 arch=('any')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
 license=('GPL-3.0-or-later')
-depends=('networkmanager' 'systemd' 'iproute2' 'iputils' 'coreutils' 'bash' 'python')
-makedepends=('git' 'make')
+depends=('networkmanager' 'bash')
+makedepends=('git')
 provides=("$pkgname-git")
 conflicts=("$pkgname-git")
 replaces=("$pkgname-git")
-backup=('etc/NetworkManager/conf.d/10-t2-services.conf' 'etc/NetworkManager/system-connections/t2-ncm.nmconnection')
 install="$pkgname.install"
 source=("git+https://github.com/kaiT2en/KaiT2en-Fedora.git")
-[[ -d ../KaiT2en-Fedora/.git ]] && git -C ../KaiT2en-Fedora pull --ff-only && source=("KaiT2en-Fedora::git+file://$(realpath ../KaiT2en-Fedora)")
 sha256sums=('SKIP')
 
 pkgver() {
-    printf "r%s.%s" "$(git -C "$srcdir/KaiT2en-Fedora" rev-list --count HEAD -- t2-services/shared)" "$(git -C "$srcdir/KaiT2en-Fedora" log -1 --format="%h" -- t2-services/shared)"
+  local _revision _commit _p="$srcdir/KaiT2en-Fedora"
+  _revision=$(git -C "$_p" rev-list --count HEAD -- t2-services/shared)
+  _commit=$(git -C "$_p" log -1 --format="%h" -- t2-services/shared)
+  printf 'r%s.%s' "${_revision:?}" "${_commit:?}"
 }
 
 check() {
