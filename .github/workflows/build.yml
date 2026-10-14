@@ -3,10 +3,10 @@ name: Build Packages
 on:
   push:
     branches:
-      - senpai
+      - kait2en
   pull_request:
     branches:
-      - senpai
+      - kait2en
   workflow_dispatch:
 
 jobs:
@@ -72,11 +72,18 @@ jobs:
           echo "builduser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builduser
           chown -R builduser:builduser .
 
-      - name: Add arch-mact2 repository
+      - name: Add kait2en and arch-mact2 repositories
         run: |
+          # The GitHub mirror is the fallback for when YuruMirror's rate limit drops a runner
           cat <<EOF | tee -a /etc/pacman.conf
+          [kait2en]
+          Server = https://mirror.funami.tech/kait2en/os/x86_64
+          Server = https://github.com/NoaHimesaka1873/arch-mact2-mirror/releases/download/kait2en
+          SigLevel = Never
+
           [arch-mact2]
           Server = https://mirror.funami.tech/arch-mact2/os/x86_64
+          Server = https://github.com/NoaHimesaka1873/arch-mact2-mirror/releases/download/release
           SigLevel = Never
           EOF
           pacman -Sy
@@ -112,7 +119,7 @@ jobs:
 
   release:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/senpai' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/kait2en' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -127,11 +134,12 @@ jobs:
       - name: Update Release
         uses: ncipollo/release-action@v1
         with:
-          tag: "latest"
-          name: "Latest Rolling Release"
+          tag: "kait2en-latest"
+          name: "KaiT2en Rolling Release"
+          commit: kait2en
           artifacts: "artifacts/*.pkg.tar.zst"
           allowUpdates: true
-          makeLatest: true
+          makeLatest: false
           replacesArtifacts: true
 
       - name: Tailscale
@@ -147,8 +155,8 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
-          REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
-          REPO_NAME: ${{ secrets.REPO_NAME }}
+          REMOTE_DIR: /opt/mirrorwww/kait2en/os/x86_64
+          REPO_NAME: kait2en
         run: |
           # Setup SSH
           mkdir -p ~/.ssh
