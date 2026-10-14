@@ -3,7 +3,7 @@
 
 pkgname=hid_t2magicmouse-dkms
 pkgver=0.1.r5.ce07b03
-pkgrel=1
+pkgrel=3
 pkgdesc="KaiT2en Apple HID module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"

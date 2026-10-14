@@ -3,7 +3,7 @@
 
 pkgname=t2_trackpad_actuator-dkms
 pkgver=0.01.r1.ce07b03
-pkgrel=1
+pkgrel=3
 pkgdesc="KaiT2en trackpad actuator module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"

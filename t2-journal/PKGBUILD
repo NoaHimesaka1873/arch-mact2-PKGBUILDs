@@ -3,7 +3,7 @@
 
 pkgname=t2-journal
 pkgver=0.1.0.r17.5e09e3f
-pkgrel=1
+pkgrel=2
 pkgdesc="Utility for Apple T2 bridgeOS logs"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"

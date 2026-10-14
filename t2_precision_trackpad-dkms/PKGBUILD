@@ -3,7 +3,7 @@
 
 pkgname=t2_precision_trackpad-dkms
 pkgver=0.01.r3.665ad11
-pkgrel=1
+pkgrel=3
 pkgdesc="KaiT2en precision trackpad module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"

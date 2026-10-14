@@ -3,7 +3,7 @@
 
 pkgname=t2sep-dkms
 pkgver=0.7.r1.1e9c571
-pkgrel=1
+pkgrel=3
 pkgdesc="KaiT2en SEP mailbox module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
