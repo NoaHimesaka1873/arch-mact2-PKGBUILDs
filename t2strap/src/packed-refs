@@ -1,0 +1,13 @@
+# pack-refs with: peeled fully-peeled sorted 
+82525ec7d19fca5d6a5c0c08a4eb1bfb2935205d refs/heads/senpai
+9d40752155203e811a6d8dcadc115cdf36f771e2 refs/pull/1/head
+78444d3e3f9ec37f10255bb46918248481b2150e refs/tags/v0.1.0
+dc49b4b8c5c093dbbf2b42210deccc5bfb17a66e refs/tags/v1.0.0
+8594cb06100e1676d43a2c8f5171bd33e568feca refs/tags/v1.0.1
+4ae7f6b1fc0a33a409ff47f80b82a5782f1f08f1 refs/tags/v1.1.0
+93151cf15e4ed329a3b3a4150cff4b1ef9ac60dc refs/tags/v1.2.0
+54849aa9b79e54febb01bb97bee89b79ed34c6a2 refs/tags/v1.3.0
+5cbef4d978db7544b636e5706b8d94d607bb30b7 refs/tags/v1.3.1
+9da27c8b21c6755e7139ff00be2ed88847cdfad4 refs/tags/v1.4.0
+c940747048367759ad6fd13906126716ba7d8106 refs/tags/v1.4.1
+7982439a4be245de0b797e71c38dea24a6aa7eb7 refs/tags/v1.4.2
