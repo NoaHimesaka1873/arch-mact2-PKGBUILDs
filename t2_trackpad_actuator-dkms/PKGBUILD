@@ -2,8 +2,8 @@
 # Packager: Turann_ (turannul) <turanull000@gmail.com>
 
 pkgname=t2_trackpad_actuator-dkms
-pkgver=0.01.r1.ce07b03
-pkgrel=3
+pkgver=0.01.r2.71cb365
+pkgrel=1
 pkgdesc="KaiT2en trackpad actuator module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
