@@ -87,6 +87,7 @@ jobs:
           SigLevel = Never
           EOF
           pacman -Sy
+          pacman -Fy
 
       - name: Install build dependencies
         run: |
@@ -148,7 +149,7 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
-          tags: tag:ci 
+          tags: tag:ci
           version: latest
 
       - name: Upload and Update Repo
