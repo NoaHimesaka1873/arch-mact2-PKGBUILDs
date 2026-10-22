@@ -2,8 +2,8 @@
 # Packager: Turann_ (turannul) <turanull000@gmail.com>
 
 pkgname=t2_precision_trackpad-dkms
-pkgver=0.01.r3.665ad11
-pkgrel=3
+pkgver=0.01.r4.53e46be
+pkgrel=1
 pkgdesc="KaiT2en precision trackpad module"
 arch=('x86_64')
 url="https://github.com/kaiT2en/KaiT2en-Fedora"
