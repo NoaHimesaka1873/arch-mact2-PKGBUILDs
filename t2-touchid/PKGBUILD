@@ -1,7 +1,7 @@
 # Maintainer: Sl (Shahaf Levi) <arch@slsrepo.com>
 
 pkgname=t2-touchid
-pkgver=0.1.0.r800.g71db7c2
+pkgver=0.1.0.r810.g6595ce0
 pkgrel=1
 pkgdesc="Apple T2 Touch ID bridge for fprintd"
 arch=('x86_64')
