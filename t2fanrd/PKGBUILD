@@ -1,7 +1,7 @@
 # Maintainer: Noa Himesaka <himesaka AT noa DOT codes>
 pkgname=t2fanrd
 pkgrel=1
-pkgver=r16.48baf96
+pkgver=r17.f3d6fcd
 pkgdesc="Supercharged T2 fan control daemon, RIIR'd!"
 url="https://github.com/GnomedDev/t2fanrd"
 arch=('x86_64')
