@@ -1,15 +1,15 @@
 # Maintainer: Noa Himesaka <himesaka AT noa DOT codes>
 pkgname=t2fanrd
 pkgrel=1
-pkgver=r17.f3d6fcd
+pkgver=r21.01df44d
 pkgdesc="Supercharged T2 fan control daemon, RIIR'd!"
-url="https://github.com/GnomedDev/t2fanrd"
+url="https://github.com/sharpenedblade/t2fanrd"
 arch=('x86_64')
 license=('GPL3')
 makedepends=('git' 'cargo')
 conflicts=('t2fand')
 replaces=('t2fand')
-source=("git+https://github.com/GnomedDev/t2fanrd"
+source=("git+https://github.com/sharpenedblade/t2fanrd"
          t2fanrd.service
        )
 sha256sums=('SKIP'
